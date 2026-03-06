@@ -20,10 +20,10 @@ Examples:
 - `git diff 2>&1 | distill "what changed?"`
 - `terraform plan 2>&1 | distill "is this safe?"`
 
-NEVER RUN COMMANDS WITHOUT `distill` unless if it would break an interactive/TUI workflow or when exact uncompressed output is required.
+THERE ARE ONLY TWO SCENARIOS WHEN YOU ARE ALLOWED TO NOT USE `distill`:
+- Do not use `distill` if exact uncompressed output is required.
+- Do not use `distill` if it would break an interactive/TUI workflow.
 ```
-
-PS: `distill` works with other Ollama models too, but `qwen3.5:2b` is the best cost-benefit option for most users.
 
 ## Usage
 
@@ -32,14 +32,6 @@ logs | distill "summarize errors"
 git diff | distill "what changed?"
 terraform plan 2>&1 | distill "is this safe?"
 ```
-
-## Global agent instructions
-
-If you want Codex, Claude Code, or OpenCode to prefer `distill` whenever they run a command whose output will be sent to a paid LLM, add a global instruction telling the agent to pipe command output through `distill`.
-
-- Codex reads global agent instructions from `~/.codex/AGENTS.md`.
-- Claude Code supports global settings in `~/.claude/settings.json`, and its official mechanism for custom behavior is global instructions via `CLAUDE.md`.
-- OpenCode supports global instruction files through `~/.config/opencode/opencode.json`. Point its `instructions` field at a markdown file with the same rule.
 
 ## Configurations
 
@@ -57,3 +49,11 @@ set -o pipefail
 ```
 
 Interactive prompts are passed through when `distill` detects simple prompt patterns like `[y/N]` or `password:`.
+
+## Global agent instructions
+
+If you want Codex, Claude Code, or OpenCode to prefer `distill` whenever they run a command whose output will be sent to a paid LLM, add a global instruction telling the agent to pipe command output through `distill`.
+
+- Codex reads global agent instructions from `~/.codex/AGENTS.md`.
+- Claude Code supports global settings in `~/.claude/settings.json`, and its official mechanism for custom behavior is global instructions via `CLAUDE.md`.
+- OpenCode supports global instruction files through `~/.config/opencode/opencode.json`. Point its `instructions` field at a markdown file with the same rule.
