@@ -9,6 +9,16 @@ const root = path.resolve(import.meta.dir, "..");
 const packDir = await mkdtemp(path.join(tmpdir(), "distill-pack-"));
 const installDir = await mkdtemp(path.join(tmpdir(), "distill-install-"));
 const packageScope = cliPackage.name.split("/")[0];
+const SANITIZED_ENV_KEYS = [
+  "DISTILL_PROVIDER",
+  "DISTILL_MODEL",
+  "DISTILL_TIMEOUT_MS",
+  "DISTILL_THINKING",
+  "DISTILL_CONFIG_PATH",
+  "OPENAI_API_KEY",
+  "OPENAI_BASE_URL",
+  "OLLAMA_HOST"
+] as const;
 
 const currentPlatformPackage = (() => {
   const key = `${process.platform}-${process.arch}`;
@@ -28,13 +38,34 @@ const currentPlatformPackage = (() => {
   return value;
 })();
 
+/**
+ * Creates an isolated environment so local user config cannot leak into the
+ * smoke-pack subprocesses.
+ */
+function createIsolatedEnv(overrides?: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env };
+
+  for (const key of SANITIZED_ENV_KEYS) {
+    delete env[key];
+  }
+
+  return {
+    ...env,
+    DISTILL_CONFIG_PATH: path.join(
+      tmpdir(),
+      `distill-smoke-config-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}.json`
+    ),
+    ...overrides
+  };
+}
+
+/**
+ * Runs a command and throws when it exits unsuccessfully.
+ */
 function runOrThrow(command: string, args: string[], cwd: string, env?: NodeJS.ProcessEnv) {
   const result = spawnSync(command, args, {
     cwd,
-    env: {
-      ...process.env,
-      ...env
-    },
+    env: createIsolatedEnv(env),
     encoding: "utf8"
   });
 
@@ -70,10 +101,9 @@ try {
 
   const fallbackProcess = spawnSync(shimPath, ["summarize briefly"], {
     cwd: installDir,
-    env: {
-      ...process.env,
+    env: createIsolatedEnv({
       OLLAMA_HOST: "http://127.0.0.1:9"
-    },
+    }),
     encoding: "utf8",
     input: "fallback smoke\n"
   });

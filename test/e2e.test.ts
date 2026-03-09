@@ -51,10 +51,47 @@ interface RunResult {
   stderr: string;
 }
 
+const SANITIZED_ENV_KEYS = [
+  "DISTILL_PROVIDER",
+  "DISTILL_MODEL",
+  "DISTILL_TIMEOUT_MS",
+  "DISTILL_THINKING",
+  "DISTILL_CONFIG_PATH",
+  "OPENAI_API_KEY",
+  "OPENAI_BASE_URL",
+  "OLLAMA_HOST"
+] as const;
+
+/**
+ * Creates an isolated environment for e2e runs so local user configuration
+ * cannot leak into the launcher subprocesses.
+ */
+function createIsolatedEnv(overrides?: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env };
+
+  for (const key of SANITIZED_ENV_KEYS) {
+    delete env[key];
+  }
+
+  return {
+    ...env,
+    DISTILL_CONFIG_PATH:
+      overrides?.DISTILL_CONFIG_PATH ??
+      path.join(
+        tmpdir(),
+        `distill-e2e-config-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}.json`
+      ),
+    ...overrides
+  };
+}
+
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Runs a command and throws when it exits unsuccessfully.
+ */
 function runOrThrow(
   command: string,
   args: string[],
@@ -64,10 +101,7 @@ function runOrThrow(
 ): string {
   const result = spawnSync(command, args, {
     cwd,
-    env: {
-      ...process.env,
-      ...env
-    },
+    env: createIsolatedEnv(env),
     encoding: "utf8",
     input
   });
@@ -85,6 +119,9 @@ function runOrThrow(
   return result.stdout.trim();
 }
 
+/**
+ * Spawns the launcher and captures its output using an isolated environment.
+ */
 async function runLauncher(args: string[], options?: {
   env?: NodeJS.ProcessEnv;
   inputSteps?: InputStep[];
@@ -92,10 +129,7 @@ async function runLauncher(args: string[], options?: {
 }): Promise<RunResult> {
   const child = spawn("node", [launcher, ...args], {
     cwd: root,
-    env: {
-      ...process.env,
-      ...options?.env
-    },
+    env: createIsolatedEnv(options?.env),
     stdio: ["pipe", "pipe", "pipe"]
   });
 

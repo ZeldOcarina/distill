@@ -119,25 +119,29 @@ function parseProvider(input: string): Provider {
   throw new UsageError(`Provider must be "ollama" or "openai".`);
 }
 
+/**
+ * Resolves runtime defaults using persisted config first, then environment
+ * variables, and finally hardcoded defaults.
+ */
 export function resolveRuntimeDefaults(
   env: NodeJS.ProcessEnv,
   persisted: PersistedConfig
 ): Omit<RuntimeConfig, "question"> {
   const provider = parseProvider(
-    env.DISTILL_PROVIDER ?? persisted.provider ?? DEFAULT_PROVIDER
+    persisted.provider ?? env.DISTILL_PROVIDER ?? DEFAULT_PROVIDER
   );
-  const model = env.DISTILL_MODEL ?? persisted.model ?? DEFAULT_MODEL;
+  const model = persisted.model ?? env.DISTILL_MODEL ?? DEFAULT_MODEL;
   const host = normalizeHost(
     provider === "openai"
-      ? (env.OPENAI_BASE_URL ?? persisted.host ?? DEFAULT_OPENAI_BASE_URL)
-      : (env.OLLAMA_HOST ?? persisted.host ?? DEFAULT_HOST)
+      ? (persisted.host ?? env.OPENAI_BASE_URL ?? DEFAULT_OPENAI_BASE_URL)
+      : (persisted.host ?? env.OLLAMA_HOST ?? DEFAULT_HOST)
   );
-  const apiKey = env.OPENAI_API_KEY ?? persisted.apiKey ?? "";
+  const apiKey = persisted.apiKey ?? env.OPENAI_API_KEY ?? "";
   const timeoutMs = coerceTimeout(
-    env.DISTILL_TIMEOUT_MS ?? String(persisted.timeoutMs ?? DEFAULT_TIMEOUT_MS)
+    String(persisted.timeoutMs ?? env.DISTILL_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS)
   );
   const thinking = parseBoolean(
-    env.DISTILL_THINKING ?? String(persisted.thinking ?? false),
+    String(persisted.thinking ?? env.DISTILL_THINKING ?? false),
     "Thinking"
   );
 

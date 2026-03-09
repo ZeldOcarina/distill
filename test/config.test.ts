@@ -98,27 +98,55 @@ describe("parseCommand", () => {
     });
   });
 
-  it("resolves env over persisted defaults", () => {
+  it("prefers persisted config over environment variables", () => {
     expect(
       resolveRuntimeDefaults(
         {
+          DISTILL_PROVIDER: "openai",
           DISTILL_MODEL: "env-model",
-          OLLAMA_HOST: "http://env.test",
+          OPENAI_BASE_URL: "https://env-openai.test",
+          OLLAMA_HOST: "http://env-ollama.test",
+          OPENAI_API_KEY: "env-key",
           DISTILL_TIMEOUT_MS: "999",
           DISTILL_THINKING: "true"
         },
         {
+          provider: "ollama",
           model: "saved-model",
           host: "http://saved.test",
+          apiKey: "saved-key",
           timeoutMs: 5,
           thinking: false
         }
       )
     ).toEqual({
       provider: "ollama",
+      model: "saved-model",
+      host: "http://saved.test",
+      apiKey: "saved-key",
+      timeoutMs: 5,
+      thinking: false
+    });
+  });
+
+  it("uses environment variables when persisted config is missing", () => {
+    expect(
+      resolveRuntimeDefaults(
+        {
+          DISTILL_PROVIDER: "openai",
+          DISTILL_MODEL: "env-model",
+          OPENAI_BASE_URL: "https://env-openai.test",
+          OPENAI_API_KEY: "env-key",
+          DISTILL_TIMEOUT_MS: "999",
+          DISTILL_THINKING: "true"
+        },
+        {}
+      )
+    ).toEqual({
+      provider: "openai",
       model: "env-model",
-      host: "http://env.test",
-      apiKey: "",
+      host: "https://env-openai.test",
+      apiKey: "env-key",
       timeoutMs: 999,
       thinking: true
     });

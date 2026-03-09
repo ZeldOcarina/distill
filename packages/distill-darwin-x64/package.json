@@ -1,11 +1,17 @@
 {
   "name": "@zeldocarina/distill-darwin-x64",
-  "version": "0.1.31",
+  "version": "0.1.32",
   "license": "MIT",
   "files": [
     "bin/distill"
   ],
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "x64"
+  ]
 }
